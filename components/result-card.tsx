@@ -11,6 +11,8 @@ interface ResultCardProps {
 
 const demoData: VideoContext = {
   videoId: "dQw4w9WgXcQ",
+  url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  schemaVersion: "1.1",
   title: "Rick Astley - Never Gonna Give You Up (Official Video)",
   channelTitle: "Rick Astley",
   publishedAt: "2009-10-24T07:57:33Z",
@@ -18,6 +20,12 @@ const demoData: VideoContext = {
   duration: "PT3M33S",
   viewCount: 1600000000,
   description: "Official music video for Rick Astley - Never Gonna Give You Up.",
+  summaryLength: "short",
+  summaryLengthLabel: "Kurz",
+  summaryDe:
+    "„Never Gonna Give You Up“ ist ein Popsong aus dem Jahr 1987. Das Video wird auf der Landingpage als metadatenbasierte Kontextkarte dargestellt.",
+  summarySource: "qwen",
+  generatedAt: "2009-10-24T07:57:33Z",
   shortContextDe:
     "„Never Gonna Give You Up“ ist ein Popsong aus dem Jahr 1987. Das Lied verbindet tanzbare Synthpop-Elemente mit einem eingängigen Refrain über bedingungslose Treue. Im Internet wurde der Track durch das sogenannte Rickrolling neu bekannt.",
   contextSource: "qwen",

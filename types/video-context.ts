@@ -1,5 +1,10 @@
+export type SummaryLength = "short" | "standard" | "long";
+
+export type SummaryLengthLabel = "Kurz" | "Standard" | "Ausführlich";
+
 export interface YoutubeIngestRequestBody {
   url: string;
+  summaryLength: SummaryLength;
 }
 
 export interface YoutubeMetadata {
@@ -14,6 +19,13 @@ export interface YoutubeMetadata {
 }
 
 export interface VideoContext extends YoutubeMetadata {
+  url: string;
+  schemaVersion: "1.1";
+  summaryLength: SummaryLength;
+  summaryLengthLabel: SummaryLengthLabel;
+  summaryDe: string;
+  summarySource: "qwen" | "fallback";
+  generatedAt: string;
   shortContextDe: string;
   contextSource: "qwen" | "fallback";
 }

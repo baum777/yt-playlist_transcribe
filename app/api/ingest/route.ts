@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { buildShortContextDe } from "@/lib/summarize";
+import { buildMetadataContextDe } from "@/lib/summarize";
+import { getSummaryLengthLabel, parseSummaryLength } from "@/lib/summary-length";
 import { generateGermanContext } from "@/lib/qwen";
 import { extractYoutubeVideoId, fetchYouTubeMetadata, normalizeDescription } from "@/lib/youtube";
 import type { YoutubeIngestRequestBody, YoutubeIngestResponse } from "@/types/video-context";
@@ -12,6 +13,14 @@ function readRequestUrl(body: unknown): string {
 
   const candidate = (body as YoutubeIngestRequestBody).url;
   return typeof candidate === "string" ? candidate.trim() : "";
+}
+
+function readRequestSummaryLength(body: unknown) {
+  if (!body || typeof body !== "object") {
+    return null;
+  }
+
+  return parseSummaryLength((body as Partial<YoutubeIngestRequestBody>).summaryLength);
 }
 
 export async function POST(request: NextRequest) {
@@ -30,6 +39,14 @@ export async function POST(request: NextRequest) {
   if (!url) {
     return NextResponse.json(
       { error: "Bitte eine YouTube-URL im Feld `url` senden." },
+      { status: 400 },
+    );
+  }
+
+  const summaryLength = readRequestSummaryLength(body);
+  if (!summaryLength) {
+    return NextResponse.json(
+      { error: "Bitte `summaryLength` als `short`, `standard` oder `long` senden." },
       { status: 400 },
     );
   }
@@ -59,20 +76,34 @@ export async function POST(request: NextRequest) {
     const shortContextDe = await generateGermanContext({
       title: video.title,
       channelTitle: video.channelTitle,
+      publishedAt: video.publishedAt,
       description,
+      summaryLength,
+      videoUrl: url,
     });
-    const contextSource: YoutubeIngestResponse["contextSource"] = shortContextDe ? "qwen" : "fallback";
-
-    const payload: YoutubeIngestResponse = {
-      ...video,
-      description,
-      shortContextDe: shortContextDe ?? buildShortContextDe({
+    const summarySource: YoutubeIngestResponse["summarySource"] = shortContextDe ? "qwen" : "fallback";
+    const normalizedSummary = shortContextDe ?? buildMetadataContextDe(
+      {
         title: video.title,
         channelTitle: video.channelTitle,
         description,
         publishedAt: video.publishedAt,
-      }),
-      contextSource,
+      },
+      summaryLength,
+    );
+
+    const payload: YoutubeIngestResponse = {
+      ...video,
+      url,
+      schemaVersion: "1.1",
+      summaryLength,
+      summaryLengthLabel: getSummaryLengthLabel(summaryLength),
+      summaryDe: normalizedSummary,
+      summarySource,
+      generatedAt: new Date().toISOString(),
+      description,
+      shortContextDe: normalizedSummary,
+      contextSource: summarySource,
     };
 
     return NextResponse.json(payload);

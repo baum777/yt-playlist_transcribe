@@ -2,6 +2,9 @@ import "server-only";
 
 import OpenAI from "openai";
 
+import { getSummaryLengthLabel, getSummaryLengthPromptRules, getSummaryLengthTokenBudget } from "@/lib/summary-length";
+import type { SummaryLength } from "@/types/video-context";
+
 const QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
 const DEFAULT_QWEN_MODEL = "qwen3.6-plus";
 
@@ -11,6 +14,7 @@ export interface ShortGermanContextInput {
   publishedAt: string | null;
   description: string;
   videoUrl: string;
+  summaryLength: SummaryLength;
 }
 
 let cachedClient: OpenAI | null = null;
@@ -35,32 +39,40 @@ function getQwenClient(): OpenAI {
   return cachedClient;
 }
 
-function sanitizeContextText(text: string): string {
-  const normalized = text.replace(/\s+/g, " ").trim();
+function sanitizeContextText(text: string, summaryLength: SummaryLength): string {
+  const normalized = text.replace(/\r\n/g, "\n").trim();
   if (!normalized) {
     return "";
   }
 
-  const words = normalized.split(" ");
-  if (words.length <= 100) {
-    return normalized;
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  if (summaryLength === "long") {
+    return paragraphs.slice(0, 4).join("\n\n");
   }
 
-  return `${words.slice(0, 100).join(" ").trimEnd()}…`;
+  return paragraphs.join(" ");
 }
 
 export async function generateGermanContext(metadata: {
   title: string;
   channelTitle: string;
   description: string;
+  publishedAt: string | null;
+  summaryLength: SummaryLength;
+  videoUrl: string;
 }): Promise<string | null> {
   try {
     return await generateShortGermanVideoContext({
       title: metadata.title,
       channelTitle: metadata.channelTitle,
-      publishedAt: null,
+      publishedAt: metadata.publishedAt,
       description: metadata.description,
-      videoUrl: "",
+      videoUrl: metadata.videoUrl,
+      summaryLength: metadata.summaryLength,
     });
   } catch {
     return null;
@@ -81,23 +93,22 @@ export async function generateShortGermanVideoContext(
   const response = await client.chat.completions.create({
     model,
     temperature: 0.2,
-    max_tokens: 180,
+    max_tokens: getSummaryLengthTokenBudget(input.summaryLength),
     messages: [
       {
         role: "system",
         content:
-          "Du schreibst kurze deutsche Kontextabschnitte für eine Landingpage. Antworte nur mit einem einzigen kurzen Absatz. Keine Aufzählungen, keine Überschrift, keine Metakommentare.",
+          "Du schreibst deutsche Kontextabschnitte für eine Landingpage. Antworte nur mit Fließtext. Keine Überschrift, keine Aufzählungen, keine Metakommentare. Bleibe strikt metadata-basiert und behaupte nicht, das Video gesehen zu haben.",
       },
       {
         role: "user",
         content: [
-          "Aufgabe: Formuliere einen kurzen deutschen Absatz ausschließlich aus den verfügbaren Metadaten.",
+          "Aufgabe: Formuliere einen deutschen Kontexttext ausschließlich aus den verfügbaren Metadaten.",
+          `Ausgabeformat: ${getSummaryLengthLabel(input.summaryLength)}.`,
+          getSummaryLengthPromptRules(input.summaryLength),
           "Regeln:",
           "- Keine Halluzinationen.",
-          "- Behaupte nicht, das Video vollständig gesehen zu haben.",
           "- Leite nur aus Titel, Kanalname, Beschreibung, Veröffentlichungsdatum und Video-URL ab.",
-          "- Kurz, klar, neutral und vorsichtig.",
-          "- Maximal etwa 70 bis 100 Wörter.",
           "- Wenn die Beschreibung dünn ist, formuliere offen und zurückhaltend.",
           "",
           `Titel: ${input.title}`,
@@ -114,7 +125,7 @@ export async function generateShortGermanVideoContext(
   const text = Array.isArray(content)
     ? content.map((part) => ("text" in part ? part.text : "")).join("")
     : content ?? "";
-  const sanitized = sanitizeContextText(text);
+  const sanitized = sanitizeContextText(text, input.summaryLength);
   if (!sanitized) {
     throw new Error("Qwen hat keinen verwertbaren Kontext geliefert.");
   }
