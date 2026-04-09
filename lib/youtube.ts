@@ -1,4 +1,5 @@
 import type { YoutubeMetadata } from "@/types/video-context";
+import { getIngestTimeoutMs, getMaxDescriptionChars } from "@/lib/runtime-config";
 
 const YOUTUBE_HOSTS = new Set([
   "youtube.com",
@@ -101,29 +102,46 @@ export function normalizeDescription(description: string | null | undefined): st
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 
-  if (normalized.length <= 800) {
+  const maxChars = getMaxDescriptionChars();
+  if (normalized.length <= maxChars) {
     return normalized;
   }
 
-  return `${normalized.slice(0, 797).trimEnd()}…`;
+  return `${normalized.slice(0, Math.max(0, maxChars - 3)).trimEnd()}…`;
 }
 
 export async function fetchYouTubeMetadata(
   videoId: string,
   apiKey: string,
+  timeoutMs: number = getIngestTimeoutMs(),
 ): Promise<YoutubeMetadata> {
   const endpoint = new URL("https://www.googleapis.com/youtube/v3/videos");
   endpoint.searchParams.set("part", "snippet,contentDetails,statistics");
   endpoint.searchParams.set("id", videoId);
   endpoint.searchParams.set("key", apiKey);
 
-  const response = await fetch(endpoint.toString(), {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Die YouTube Data API hat das Zeitlimit von ${timeoutMs} ms überschritten.`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     throw new Error(`Die YouTube Data API hat mit Status ${response.status} geantwortet.`);
@@ -158,6 +176,7 @@ export async function fetchYouTubeMetadata(
 export async function fetchYouTubeVideoMetadata(
   videoUrl: string,
   apiKey: string,
+  timeoutMs: number = getIngestTimeoutMs(),
 ): Promise<YoutubeMetadata> {
   const videoId = extractYoutubeVideoId(videoUrl);
   if (!videoId) {
@@ -166,5 +185,5 @@ export async function fetchYouTubeVideoMetadata(
     );
   }
 
-  return fetchYouTubeMetadata(videoId, apiKey);
+  return fetchYouTubeMetadata(videoId, apiKey, timeoutMs);
 }

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildMetadataContextDe } from "@/lib/summarize";
 import { getSummaryLengthLabel, parseSummaryLength } from "@/lib/summary-length";
 import { generateGermanContext } from "@/lib/qwen";
+import { getDefaultSummaryLength, getIngestTimeoutMs, getLogLevel, isRequestLoggingEnabled } from "@/lib/runtime-config";
 import { extractYoutubeVideoId, fetchYouTubeMetadata, normalizeDescription } from "@/lib/youtube";
 import type { YoutubeIngestRequestBody, YoutubeIngestResponse } from "@/types/video-context";
 
@@ -21,6 +22,10 @@ function readRequestSummaryLength(body: unknown) {
   }
 
   return parseSummaryLength((body as Partial<YoutubeIngestRequestBody>).summaryLength);
+}
+
+function resolveSummaryLength(body: unknown) {
+  return readRequestSummaryLength(body) ?? getDefaultSummaryLength();
 }
 
 export async function POST(request: NextRequest) {
@@ -43,13 +48,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const summaryLength = readRequestSummaryLength(body);
-  if (!summaryLength) {
-    return NextResponse.json(
-      { error: "Bitte `summaryLength` als `short`, `standard` oder `long` senden." },
-      { status: 400 },
-    );
-  }
+  const summaryLength = resolveSummaryLength(body);
 
   const videoId = extractYoutubeVideoId(url);
   if (!videoId) {
@@ -71,7 +70,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const video = await fetchYouTubeMetadata(videoId, apiKey);
+    if (isRequestLoggingEnabled()) {
+      console.info(`[ingest:${getLogLevel()}] processing ${videoId} with summaryLength=${summaryLength}`);
+    }
+
+    const video = await fetchYouTubeMetadata(videoId, apiKey, getIngestTimeoutMs());
     const description = normalizeDescription(video.description);
     const shortContextDe = await generateGermanContext({
       title: video.title,
@@ -110,7 +113,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Die YouTube-URL konnte nicht verarbeitet werden.";
-    const status = message.includes("nicht unterstützt") ? 400 : 502;
+    const status = message.includes("nicht unterstützt")
+      ? 400
+      : message.includes("Zeitlimit")
+        ? 504
+        : 502;
     return NextResponse.json({ error: message }, { status });
   }
 }

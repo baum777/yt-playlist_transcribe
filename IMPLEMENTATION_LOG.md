@@ -16,3 +16,35 @@ Assumptions:
 
 Verification:
 - `npm run build` completed successfully
+
+## Wave 2 - Production readiness cleanup
+
+Implemented:
+- aligned deployment-facing documentation with Vercel as the primary target
+- updated `.env.example` to match the current OpenRouter-first runtime contract
+- added a deployment-ready environment inventory addendum to `README.md`
+- kept compatibility aliases (`shortContextDe`, `contextSource`) documented as transition-only fields
+
+Verification:
+- `npm run build` completed successfully after the documentation and blueprint updates
+
+## Wave 3 - Deployment target correction
+
+Implemented:
+- reverted deployment-facing docs from Render back to Vercel
+- removed the Render blueprint file
+- updated the environment inventory and example env file to reflect Vercel platform hints instead of Render hints
+
+Verification:
+- `npm run build` was last confirmed successful before the documentation-only target correction
+
+## Wave 4 - Runtime contract alignment
+
+Implemented:
+- added server-side runtime config for `APP_URL`, `INGEST_TIMEOUT_MS`, `MAX_DESCRIPTION_CHARS`, `DEFAULT_SUMMARY_LENGTH`, `LOG_LEVEL`, and `ENABLE_REQUEST_LOGGING`
+- made `app/api/ingest/route.ts` default `summaryLength` server-side so the current UI flow remains functional
+- wired `app/layout.tsx` metadata to the runtime base URL
+- aligned `.env.example` and `README.md` with the current server-side contract
+
+Verification:
+- `npm run build` completed successfully after the runtime alignment patch

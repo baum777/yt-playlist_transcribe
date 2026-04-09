@@ -5,8 +5,9 @@ import OpenAI from "openai";
 import { getSummaryLengthLabel, getSummaryLengthPromptRules, getSummaryLengthTokenBudget } from "@/lib/summary-length";
 import type { SummaryLength } from "@/types/video-context";
 
-const QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
-const DEFAULT_QWEN_MODEL = "qwen3.6-plus";
+const DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+const DEFAULT_QWEN_MODEL_ID = "qwen/qwen3.6-plus";
+const DEFAULT_QWEN_TIMEOUT_MS = 15_000;
 
 export interface ShortGermanContextInput {
   title: string;
@@ -19,20 +20,38 @@ export interface ShortGermanContextInput {
 
 let cachedClient: OpenAI | null = null;
 
-function getQwenModel(): string {
-  return process.env.QWEN_MODEL?.trim() || DEFAULT_QWEN_MODEL;
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function getQwenClient(): OpenAI {
-  const apiKey = process.env.DASHSCOPE_API_KEY?.trim();
+function getQwenModelId(): string {
+  return process.env.QWEN_MODEL_ID?.trim() || DEFAULT_QWEN_MODEL_ID;
+}
+
+function getOpenRouterClient(): OpenAI {
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error("DASHSCOPE_API_KEY ist nicht gesetzt.");
+    throw new Error("OPENROUTER_API_KEY ist nicht gesetzt.");
+  }
+
+  const baseURL = process.env.OPENROUTER_BASE_URL?.trim() || DEFAULT_OPENROUTER_BASE_URL;
+  try {
+    new URL(baseURL);
+  } catch {
+    throw new Error("OPENROUTER_BASE_URL ist keine gültige URL.");
   }
 
   if (!cachedClient) {
     cachedClient = new OpenAI({
       apiKey,
-      baseURL: QWEN_BASE_URL,
+      baseURL,
+      timeout: parsePositiveInteger(process.env.QWEN_TIMEOUT_MS, DEFAULT_QWEN_TIMEOUT_MS),
+      maxRetries: 0,
     });
   }
 
@@ -82,8 +101,8 @@ export async function generateGermanContext(metadata: {
 export async function generateShortGermanVideoContext(
   input: ShortGermanContextInput,
 ): Promise<string> {
-  const client = getQwenClient();
-  const model = getQwenModel();
+  const client = getOpenRouterClient();
+  const model = getQwenModelId();
   const publishedDate = input.publishedAt
     ? new Date(input.publishedAt).toLocaleDateString("de-DE", {
         dateStyle: "medium",
