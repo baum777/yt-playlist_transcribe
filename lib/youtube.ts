@@ -1,58 +1,13 @@
 import type { YoutubeMetadata } from "@/types/video-context";
 import { getIngestTimeoutMs, getMaxDescriptionChars } from "@/lib/runtime-config";
-
-const YOUTUBE_HOSTS = new Set([
-  "youtube.com",
-  "www.youtube.com",
-  "m.youtube.com",
-  "music.youtube.com",
-  "youtu.be",
-  "www.youtu.be",
-]);
-
-const YOUTUBE_VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
-
-function isYoutubeHost(hostname: string) {
-  return YOUTUBE_HOSTS.has(hostname.toLowerCase());
-}
-
-function trimOptionalTrailingSlash(value: string) {
-  return value.replace(/\/+$/, "");
-}
+import {
+  getYoutubeUrlValidationMessage,
+  validateYoutubeVideoUrl,
+} from "@/lib/youtube-url";
 
 export function extractYoutubeVideoId(input: string): string | null {
-  let parsed: URL;
-
-  try {
-    parsed = new URL(input);
-  } catch {
-    return null;
-  }
-
-  if (!isYoutubeHost(parsed.hostname)) {
-    return null;
-  }
-
-  const pathname = trimOptionalTrailingSlash(parsed.pathname);
-
-  if (parsed.hostname.includes("youtu.be")) {
-    const id = pathname.split("/").filter(Boolean)[0] ?? "";
-    return YOUTUBE_VIDEO_ID_PATTERN.test(id) ? id : null;
-  }
-
-  if (pathname === "/watch") {
-    const id = parsed.searchParams.get("v") ?? "";
-    return YOUTUBE_VIDEO_ID_PATTERN.test(id) ? id : null;
-  }
-
-  const segments = pathname.split("/").filter(Boolean);
-  const videoId = segments[1] ?? segments[0] ?? "";
-
-  if (segments[0] === "shorts" || segments[0] === "embed" || segments[0] === "live") {
-    return YOUTUBE_VIDEO_ID_PATTERN.test(videoId) ? videoId : null;
-  }
-
-  return null;
+  const validation = validateYoutubeVideoUrl(input);
+  return validation.ok ? validation.videoId : null;
 }
 
 interface YoutubeApiThumbnailSet {
@@ -178,12 +133,13 @@ export async function fetchYouTubeVideoMetadata(
   apiKey: string,
   timeoutMs: number = getIngestTimeoutMs(),
 ): Promise<YoutubeMetadata> {
-  const videoId = extractYoutubeVideoId(videoUrl);
-  if (!videoId) {
+  const validation = validateYoutubeVideoUrl(videoUrl);
+  if (!validation.ok) {
     throw new Error(
-      "Bitte eine einzelne YouTube-Video-URL senden. Playlist-Links und fremde Domains sind in V1 nicht unterstützt.",
+      getYoutubeUrlValidationMessage(validation.error, "en"),
     );
   }
 
+  const videoId = validation.videoId;
   return fetchYouTubeMetadata(videoId, apiKey, timeoutMs);
 }

@@ -4,8 +4,14 @@ import { buildMetadataContextDe } from "@/lib/summarize";
 import { getSummaryLengthLabel, parseSummaryLength } from "@/lib/summary-length";
 import { generateGermanContext } from "@/lib/qwen";
 import { getDefaultSummaryLength, getIngestTimeoutMs, getLogLevel, isRequestLoggingEnabled } from "@/lib/runtime-config";
-import { extractYoutubeVideoId, fetchYouTubeMetadata, normalizeDescription } from "@/lib/youtube";
-import type { YoutubeIngestRequestBody, YoutubeIngestResponse } from "@/types/video-context";
+import { fetchYouTubeMetadata, normalizeDescription } from "@/lib/youtube";
+import { getYoutubeUrlValidationMessage, validateYoutubeVideoUrl } from "@/lib/youtube-url";
+import type {
+  YoutubeIngestErrorResponse,
+  YoutubeIngestRequestBody,
+  YoutubeIngestResponse,
+  YoutubeIngestValidationErrorResponse,
+} from "@/types/video-context";
 
 function readRequestUrl(body: unknown): string {
   if (!body || typeof body !== "object") {
@@ -35,36 +41,36 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Der Request-Body muss JSON enthalten." },
+      {
+        error: "INVALID_REQUEST",
+        message: "The request body must contain JSON.",
+      } satisfies YoutubeIngestErrorResponse,
       { status: 400 },
     );
   }
 
   const url = readRequestUrl(body);
-  if (!url) {
+  const urlValidation = validateYoutubeVideoUrl(url);
+  if (!urlValidation.ok) {
     return NextResponse.json(
-      { error: "Bitte eine YouTube-URL im Feld `url` senden." },
+      {
+        error: "INVALID_URL",
+        message: getYoutubeUrlValidationMessage(urlValidation.error, "en"),
+      } satisfies YoutubeIngestValidationErrorResponse,
       { status: 400 },
     );
   }
 
   const summaryLength = resolveSummaryLength(body);
-
-  const videoId = extractYoutubeVideoId(url);
-  if (!videoId) {
-    return NextResponse.json(
-      {
-        error:
-          "Bitte eine einzelne YouTube-Video-URL senden. Playlist-Links und fremde Domains sind in V1 nicht unterstützt.",
-      },
-      { status: 400 },
-    );
-  }
+  const videoId = urlValidation.videoId;
 
   const apiKey = process.env.YOUTUBE_API_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json(
-      { error: "YOUTUBE_API_KEY ist nicht gesetzt. Die Ingest-Route kann so nicht arbeiten." },
+      {
+        error: "MISSING_API_KEY",
+        message: "YOUTUBE_API_KEY is not set. The ingest route cannot run.",
+      } satisfies YoutubeIngestErrorResponse,
       { status: 500 },
     );
   }
@@ -112,12 +118,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(payload);
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Die YouTube-URL konnte nicht verarbeitet werden.";
-    const status = message.includes("nicht unterstützt")
-      ? 400
-      : message.includes("Zeitlimit")
-        ? 504
-        : 502;
-    return NextResponse.json({ error: message }, { status });
+      error instanceof Error ? error.message : "The YouTube URL could not be processed.";
+    const status = message.includes("Zeitlimit") ? 504 : 502;
+    return NextResponse.json(
+      {
+        error: status === 504 ? "TIMEOUT" : "METADATA_ERROR",
+        message,
+      } satisfies YoutubeIngestErrorResponse,
+      { status },
+    );
   }
 }

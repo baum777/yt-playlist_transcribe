@@ -27,7 +27,11 @@ export function UrlInput({
   }
 
   return (
-    <form className={["url-input", className].filter(Boolean).join(" ")} onSubmit={handleSubmit}>
+    <form
+      className={["url-input", className].filter(Boolean).join(" ")}
+      onSubmit={handleSubmit}
+      noValidate
+    >
       <label className="field-label" htmlFor={id}>
         YouTube URL
       </label>
@@ -59,7 +63,7 @@ export function UrlInput({
       </div>
 
       <p className="form-hint" id={`${id}-help`}>
-        Paste a standard watch link or a youtu.be short link.
+        Paste a single YouTube video link. Standard watch links and youtu.be short links are supported.
       </p>
 
       <div className="form-status" aria-live="polite" id={`${id}-error`}>

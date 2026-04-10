@@ -3,7 +3,7 @@ const steps = [
     number: "01",
     title: "Paste URL",
     description:
-      "Drop any valid YouTube URL into the input. The app accepts standard watch links and short youtu.be formats.",
+      "Drop a single YouTube video URL into the input. The app accepts standard watch links and short youtu.be formats.",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M8 7h8M8 12h5M8 17h8" />

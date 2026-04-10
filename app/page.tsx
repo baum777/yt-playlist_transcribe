@@ -14,10 +14,10 @@ export default function Page() {
       <section className="hero">
         <p className="eyebrow">Instant video context</p>
         <h1>
-          Paste a YouTube link. <span>Get the context instantly.</span>
+          Paste a single YouTube video link. <span>Get the context instantly.</span>
         </h1>
         <p className="hero-copy">
-          Drop any YouTube URL and get back the thumbnail, metadata, and a short German
+          Drop a single YouTube video URL and get back the thumbnail, metadata, and a short German
           contextual summary - powered by Qwen 3.6 reasoning.
         </p>
 

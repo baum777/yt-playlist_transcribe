@@ -7,8 +7,8 @@ import { FaqAccordion } from "./faq-accordion";
 type TabKey = "how" | "faq";
 
 const howToUseSteps = [
-  "Open the app and locate the URL input - The input is centered in the hero section. It accepts any valid YouTube URL in standard or short format.",
-  "Paste your YouTube URL - Use Ctrl+V or right-click -> Paste. Accepts youtube.com/watch?v= and youtu.be/ links.",
+  "Open the app and locate the URL input - The input is centered in the hero section. It accepts a single YouTube video URL in standard or short format.",
+  "Paste your YouTube URL - Use Ctrl+V or right-click -> Paste. Accepts youtube.com/watch?v= and youtu.be/ links only.",
   "Wait for the ingest - usually under a second - The app fetches metadata, loads the thumbnail, and sends the structured data to Qwen 3.6 for context generation.",
   "Review the result card - The card shows thumbnail, title, channel, publish date, and a short German context paragraph. The Qwen 3.6 label indicates the model layer used.",
 ];
@@ -17,7 +17,7 @@ const faqItems = [
   {
     question: "What kind of YouTube URLs work?",
     answer:
-      "Standard watch links (youtube.com/watch?v=...) and short links (youtu.be/...) both work. Private, age-restricted, or region-blocked videos may not return full metadata.",
+      "Standard watch links (youtube.com/watch?v=...) and short links (youtu.be/...) both work. Playlist URLs, channel URLs, and other YouTube surfaces are intentionally rejected.",
   },
   {
     question: "Does this summarize the full video?",

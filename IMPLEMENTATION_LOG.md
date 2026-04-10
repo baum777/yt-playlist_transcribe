@@ -48,3 +48,14 @@ Implemented:
 
 Verification:
 - `npm run build` completed successfully after the runtime alignment patch
+
+## Wave 5 - URL validation hardening
+
+Implemented:
+- added a shared pure YouTube URL validator in `lib/youtube-url.ts`
+- tightened client-side submission so playlist and other unsupported URLs are rejected before `/api/ingest`
+- aligned `app/api/ingest/route.ts` with a typed `INVALID_URL` validation response and kept non-validation failures on the metadata error path
+- updated visible copy to state that YTContext v1 is single-video only
+
+Verification:
+- `npm run build` completed successfully after the validation hardening patch

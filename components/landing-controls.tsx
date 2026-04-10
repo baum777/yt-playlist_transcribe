@@ -4,7 +4,11 @@ import { useState } from "react";
 
 import { ResultCard } from "@/components/result-card";
 import { UrlInput } from "@/components/url-input";
-import type { YoutubeIngestResponse } from "@/types/video-context";
+import {
+  getYoutubeUrlValidationMessage,
+  validateYoutubeVideoUrl,
+} from "@/lib/youtube-url";
+import type { YoutubeIngestResponse, YoutubeIngestResponsePayload } from "@/types/video-context";
 
 type LoadState = "idle" | "loading" | "success" | "error";
 
@@ -14,6 +18,38 @@ export function LandingControls() {
   const [result, setResult] = useState<YoutubeIngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ingestMs, setIngestMs] = useState<number | null>(null);
+
+  function showValidationError(
+    errorCode: Parameters<typeof getYoutubeUrlValidationMessage>[0],
+  ) {
+    setError(getYoutubeUrlValidationMessage(errorCode, "de"));
+    setResult(null);
+    setIngestMs(null);
+    setState("idle");
+  }
+
+  function readResponseErrorMessage(payload: YoutubeIngestResponsePayload) {
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      "message" in payload &&
+      typeof payload.message === "string" &&
+      payload.message.trim()
+    ) {
+      return payload.message;
+    }
+
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      "error" in payload &&
+      typeof payload.error === "string"
+    ) {
+      return payload.error;
+    }
+
+    return "Die YouTube-URL konnte nicht verarbeitet werden.";
+  }
 
   function handleChange(nextValue: string) {
     setUrl(nextValue);
@@ -27,11 +63,13 @@ export function LandingControls() {
   }
 
   async function handleSubmit(nextUrl: string) {
-    if (!nextUrl.trim()) {
-      setError("Please paste a YouTube URL before analyzing.");
-      setState("error");
-      setResult(null);
-      setIngestMs(null);
+    if (state === "loading") {
+      return;
+    }
+
+    const validation = validateYoutubeVideoUrl(nextUrl);
+    if (!validation.ok) {
+      showValidationError(validation.error);
       return;
     }
 
@@ -51,19 +89,20 @@ export function LandingControls() {
         body: JSON.stringify({ url: nextUrl }),
       });
 
-      const payload = (await response.json()) as
-        | YoutubeIngestResponse
-        | { error?: string; message?: string };
+      const payload = (await response.json()) as YoutubeIngestResponsePayload;
 
       if (!response.ok) {
-        const message =
+        if (
           typeof payload === "object" &&
           payload !== null &&
           "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : "Die YouTube-URL konnte nicht verarbeitet werden.";
-        throw new Error(message);
+          payload.error === "INVALID_URL"
+        ) {
+          showValidationError("INVALID_URL");
+          return;
+        }
+
+        throw new Error(readResponseErrorMessage(payload));
       }
 
       setResult(payload as YoutubeIngestResponse);

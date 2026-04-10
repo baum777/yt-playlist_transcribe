@@ -30,6 +30,16 @@ export interface VideoContext extends YoutubeMetadata {
   contextSource: "qwen" | "fallback";
 }
 
+export interface YoutubeIngestErrorResponse {
+  error: string;
+  message: string;
+}
+
+export interface YoutubeIngestValidationErrorResponse {
+  error: "INVALID_URL";
+  message: string;
+}
+
 export type ApiResponse =
   | {
       status: "success";
@@ -49,3 +59,4 @@ export type ApiResponse =
     };
 
 export type YoutubeIngestResponse = VideoContext;
+export type YoutubeIngestResponsePayload = YoutubeIngestResponse | YoutubeIngestErrorResponse;
