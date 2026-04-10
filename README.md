@@ -77,18 +77,21 @@ http://localhost:3000
 
 Die Zielplattform ist Vercel. Die App bleibt serverfähig und darf nicht als statische Site bereitgestellt werden.
 
-1. Repository mit Vercel verbinden.
-2. Das Projekt in Vercel importieren.
+1. Repository mit Vercel verbinden oder per `vercel link` an das Zielprojekt binden.
+2. Das Projekt in Vercel importieren und die Projektbindung prüfen.
 3. Den Branch auswählen, der deployed werden soll.
 4. Root Directory auf das Repository-Root setzen (`.`), falls Vercel es nicht automatisch übernimmt.
-5. Build Command bei Bedarf auf `npm install && npm run build` setzen.
-6. Deploy auslösen.
-7. Smoke Test gegen die Vercel-URL durchführen.
+5. Build Command bei Bedarf auf `npm run build` setzen; Vercel übernimmt die Installation vor dem Build.
+6. Vor dem ersten Production Deploy die erforderlichen Env Vars in den Vercel Project Settings setzen.
+7. Deploy auslösen.
+8. Smoke Test gegen die Vercel-URL durchführen.
 
 Hinweise:
 
+- Die lokale `.vercel/`-Bindung entsteht durch `vercel link` und sollte vor CLI-Deploys vorhanden sein.
 - Vercel benötigt für diese App kein separates `start` Command in der Projektkonfiguration.
 - Secrets werden in den Vercel Project Settings gespeichert und nicht im Repo.
+- Erforderliche serverseitige Env Vars sind: `YOUTUBE_API_KEY`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, `QWEN_MODEL_ID`, `QWEN_TIMEOUT_MS`, `INGEST_TIMEOUT_MS`, `MAX_DESCRIPTION_CHARS` und `DEFAULT_SUMMARY_LENGTH`.
 - `APP_URL` sollte auf die öffentliche Produktions-URL gesetzt werden, damit absolute Metadaten und Canonical-URLs korrekt sind.
 - Vercel injiziert Runtime-Metadaten wie `VERCEL_URL` automatisch; ein manueller Eintrag ist nicht erforderlich.
 

@@ -1,17 +1,17 @@
 # 1. Executive Summary
-YTContext v1.1 remains a single-page Next.js + TypeScript landing page that is metadata-only, single-action, honest, and non-persistent. This document is historical migration context for the Render wave; the active deployment target in the repo is now Vercel.
+YTContext v1.1 remains a single-page Next.js + TypeScript landing page that is metadata-only, single-action, honest, and non-persistent. This document is historical migration context from the prior deployment wave; the active deployment target in the repo is now Vercel.
 
 Current repo truth to preserve:
 - The page is already structured as `nav`, `hero`, `demo`, `how-it-works`, `features`, `qwen-section`, `info-tabs`, `bottom-cta`, and `footer`.
 - The product already uses a single YouTube URL ingest flow and server-side metadata lookup in `app/api/ingest/route.ts`.
 - The existing Qwen path is already a server-side metadata compression layer, not transcript understanding.
-- Historical Render references below are migration context only; Vercel is the active deployment target.
+- Historical deployment references below are migration context only; Vercel is the active deployment target.
 
 v1.1 changes the control surface without changing the product class:
 - the user chooses summary depth before analysis
 - exports are generated only after a successful result
 - export files are runtime artifacts only
-- deployment guidance now targets Vercel, not Render
+- deployment guidance now targets Vercel
 
 # 2. Product Goal
 Allow a user to paste one YouTube video URL, choose how deep the metadata-based German context should be, receive a polished result card, and export the generated result in common formats.
@@ -359,7 +359,7 @@ FAQ updates:
 - explain that exports are generated on demand
 
 Deployment copy:
-- replace Render-specific deployment guidance with Vercel-specific guidance
+- align deployment guidance with Vercel-specific instructions
 - do not mention static export as the primary path
 
 # 16. Accessibility Requirements
@@ -394,7 +394,7 @@ Deployment:
 - target a Vercel deployment
 - use the Node server runtime required by Next.js API routes
 - configure env vars in the Vercel project settings
-- do not depend on Render-specific deployment assumptions
+- do not depend on non-Vercel deployment assumptions
 - do not convert to a static-only deployment if that breaks `/api/ingest` or `/api/export`
 
 Recommended Vercel settings:
@@ -521,13 +521,13 @@ Open questions:
 7. Update `components/result-card.tsx` to show the selected depth and export actions.
 8. Add `components/export-actions.tsx`, `lib/exporters.ts`, and `app/api/export/route.ts`.
 9. Update `components/info-tabs.tsx`, `components/features-grid.tsx`, `components/how-it-works.tsx`, and `components/qwen-section.tsx` for v1.1 copy.
-10. Replace Render-specific deployment guidance with Vercel guidance.
+10. Align deployment guidance with Vercel guidance.
 
 # 23. Change Summary
 v1.1 changes the product in three concrete ways:
 - users choose summary depth before analysis
 - successful results can be exported in multiple formats
-- deployment guidance moves from Render to Vercel
+- deployment guidance moves to Vercel
 
 It does not change the product class:
 - still one page
@@ -542,7 +542,7 @@ Breaking or semibreaking changes:
 - the canonical result object should gain a generalized summary field
 - `components/url-input.tsx` needs structural refactoring because the submit button can no longer live inside the same block as the URL input
 - `components/result-card.tsx` must render export actions below the summary
-- Vercel replaces Render in deployment instructions
+- Vercel is the active deployment target in deployment instructions
 
 Operational impact:
 - new server route for exports
@@ -571,4 +571,4 @@ Then add exports:
 - `lib/exporters.ts`
 - `app/api/export/route.ts`
 
-Finish by updating the content copy and replacing Render deployment notes with Vercel instructions.
+Finish by updating the content copy and aligning deployment notes with Vercel instructions.

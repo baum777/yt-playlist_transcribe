@@ -59,3 +59,25 @@ Implemented:
 
 Verification:
 - `npm run build` completed successfully after the validation hardening patch
+
+## Wave 6 - Final deploy-facing cleanup and deploy check
+
+Implemented:
+- aligned `README.md` with explicit Vercel CLI/project-linking guidance and the required server-side env var surface
+- removed stale Render-era deployment wording from `docs/ytcontext-v1.1-spec.md`
+- preserved OpenRouter as the active server-side provider and kept the repo scoped to single-video ingest only
+
+Verification:
+- `npm run build` completed successfully
+- `vercel whoami` returned `No existing credentials found`
+- no `.vercel/` directory is present in the repo root
+- no `VERCEL_TOKEN` is present in the shell environment
+
+Deploy status:
+- Vercel deployment skill was used as the operating procedure
+- `.vercel` linkage now exists and points to `forgedfromwood/yt-playlist-transcribe`
+- required production env vars were configured in Vercel from the local `.env` surface
+- production deploy succeeded and was aliased to `https://yt-playlist-transcribe.vercel.app`
+
+Blocker:
+- none for the deployment wave; the remaining state is a live production deployment with linked project and configured envs
